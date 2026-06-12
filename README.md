@@ -1,37 +1,42 @@
 # 🔍 Network Reconnaissance Tool
 
-A multi-threaded network reconnaissance tool built using Python that performs **ARP-based device discovery** and **TCP port scanning** with **service detection** and **banner grabbing**.
+A multi-threaded network reconnaissance tool built using Python that performs **ARP-based device discovery**, **OS fingerprinting**, **TCP & UDP port scanning** with **service detection** and **banner grabbing**.
 
 <br>
 
-## 🚀 Features
+## 🎬 Demo
 
-- 🔎 Discover active devices on a local network (ARP scan)
-- 🌐 Scan open ports on single or multiple targets
-- ⚡ Multi-threaded scanning for high performance
-- 🏷️ Service detection (HTTP, FTP, SMB, etc.)
-- 📡 Banner grabbing for deeper inspection
-- 📊 Real-time progress tracking with tqdm
-- 📝 Logging system for scan activity
-- 📄 Export results in structured JSON format
-- 🔗 Supports both single-target and full network scanning
+![Demo](docs/demo.gif)
 
 <br>
 
 ## 🧠 How It Works
 
-1. **Network Discovery (ARP)**
-   - Sends ARP requests to identify active devices
-   - Collects IP and MAC addresses
+![Architecture](docs/architecture.svg)
 
-2. **Port Scanning (TCP)**
-   - Performs TCP connect scan on each device
-   - Identifies open ports
+1. **Network Discovery (ARP)** — sends ARP requests to identify active devices, collects IP/MAC addresses
+2. **OS Fingerprinting (TTL)** — sends ICMP ping, analyzes TTL to guess the OS with a confidence score
+3. **TCP Port Scan** — threaded connect scan across a configurable port range
+4. **UDP Port Scan** — protocol-specific probes (DNS, NTP, SNMP, NetBIOS) for accurate results
+5. **Service Detection & Banner Grab** — maps ports to services, extracts banners, exports to JSON
 
-3. **Service Detection & Banner Grabbing**
-   - Maps ports to common services
-   - Sends protocol-specific requests (HTTP, SMTP, etc.)
-   - Extracts banners for service identification
+<br>
+
+## 🚀 Features
+
+| Feature | Description |
+|---|---|
+| 🔎 Network discovery | ARP scan to find active devices and collect IP/MAC addresses |
+| 🧬 OS fingerprinting | TTL-based detection (Linux / Windows / Network device / Solaris) with confidence scoring |
+| 🌐 TCP scanning | Multi-threaded connect scan with configurable port range and thread count |
+| 📶 UDP scanning | Protocol-specific probes for DNS, NTP, SNMP, NetBIOS + generic fallback |
+| 🏷️ Service detection | Maps 25+ TCP/UDP ports to service names |
+| 📡 Banner grabbing | Extracts service banners for deeper inspection |
+| 📊 Progress tracking | Real-time tqdm progress bars for TCP and UDP scans |
+| 📝 Logging | Full scan activity logged to `scanner.log` |
+| 📄 JSON export | Structured output with targets, OS guesses, and open ports |
+| 🔗 Flexible targeting | Single target or full network range |
+| ✅ Unit tested | 17 tests covering core logic, no root required |
 
 <br>
 
@@ -39,49 +44,148 @@ A multi-threaded network reconnaissance tool built using Python that performs **
 
 - Python 3
 - Socket Programming
-- Threading
-- Scapy (for ARP scanning)
+- `concurrent.futures.ThreadPoolExecutor`
+- Scapy (ARP scanning, ICMP/UDP probes, OS fingerprinting)
 - argparse (CLI interface)
-- tqdm (progress bar)
+- tqdm (progress bars)
+- pytest (unit testing)
 - logging
 
 <br>
 
 ## ▶️ Usage
 
-🔹 Scan a Single Target  
-   python main.py --target scanme.nmap.org --start 20 --end 1000
+### Scan a single target (TCP, ports 20–1000, with OS fingerprinting)
+```bash
+sudo venv/bin/python main.py --target 192.168.1.1 --start 20 --end 1000
+```
 
-🔹 Scan Local Network (requires root)  
-   sudo venv/bin/python main.py --network 192.168.X.X/XX --start 20 --end 1000
+### Scan local network (ARP discovery + OS fingerprint + port scan)
+```bash
+sudo venv/bin/python main.py --network 192.168.1.0/24 --start 20 --end 1000
+```
+
+### Include UDP scanning
+```bash
+sudo venv/bin/python main.py --target 192.168.1.1 --udp
+```
+
+### Custom UDP ports + timeout
+```bash
+sudo venv/bin/python main.py --target 192.168.1.1 --udp --udp-ports 53,123,161,500 --udp-timeout 1.5
+```
+
+### Skip OS fingerprinting (faster scans)
+```bash
+sudo venv/bin/python main.py --target 192.168.1.1 --no-os-detect
+```
+
+### Tune thread count & timestamp output
+```bash
+sudo venv/bin/python main.py --target 192.168.1.1 --threads 200 --timestamp
+```
 
 <br>
 
-##  📄 Sample Output
+### 🔧 CLI Flags
 
-```
-[
-  {
-    "target": "192.168.X.X",
-    "mac": "12:34:56:78:91:23",
-    "port": 80,
-    "status": "open",
-    "service": "HTTP",
-    "banner": "HTTP/1.1 200 OK..."
-  }
-]
-```
+| Flag | Description | Default |
+|---|---|---|
+| `--target` | Single target IP or domain | — |
+| `--network` | Network range for ARP scan (e.g. `192.168.1.0/24`) | — |
+| `--start` / `--end` | TCP port range | `1` / `1000` |
+| `--threads` | Max concurrent threads | `100` |
+| `--udp` | Enable UDP scanning | off |
+| `--udp-ports` | Comma-separated UDP ports | top 16 common ports |
+| `--udp-timeout` | UDP probe timeout (seconds) | `2.0` |
+| `--no-os-detect` | Skip OS fingerprinting | off |
+| `--timestamp` | Add timestamp to output filename | off |
 
-<br> 
-
-##  📁 Output Files
-
-- results/<target>.json → Scan results
-- scanner.log → Logging information
+> **Note:** Root/sudo is required because the tool uses raw sockets (Scapy) for ARP scanning, OS fingerprinting, and UDP probes.
 
 <br>
 
-##  ⚠️ Disclaimer
+## 📄 Sample Output
 
-This tool is intended for educational and authorized testing purposes only.
+```json
+{
+    "targets": [
+        {
+            "ip": "192.168.1.1",
+            "mac": "10:10:81:e4:23:42",
+            "os_guess": "Linux / Android",
+            "ttl": 64,
+            "os_confidence": "high"
+        }
+    ],
+    "open_ports": [
+        {
+            "target": "192.168.1.1",
+            "mac": "10:10:81:e4:23:42",
+            "port": 80,
+            "protocol": "tcp",
+            "status": "open",
+            "service": "HTTP",
+            "banner": "HTTP/1.1 200 OK..."
+        },
+        {
+            "target": "192.168.1.1",
+            "port": 53,
+            "protocol": "udp",
+            "status": "open",
+            "service": "DNS",
+            "response": "DNS reply (answers=1)"
+        }
+    ]
+}
+```
+
+<br>
+
+## 📁 Output Files
+
+- `results/<target>.json` → Scan results (targets + open ports)
+- `scanner.log` → Logging information
+
+<br>
+
+## ✅ Running Tests
+
+The core logic (service mapping, OS detection, port scanning) is unit-tested with mocked network calls — **no root or live network required**:
+
+```bash
+venv/bin/pip install pytest
+venv/bin/python -m pytest tests/ -v
+```
+
+<br>
+
+## 📦 Project Structure
+
+```
+.
+├── main.py
+├── scanner/
+│   ├── core.py        # TCP connect scanning
+│   ├── udp.py          # UDP scanning with protocol probes
+│   ├── network.py      # ARP-based network discovery
+│   ├── os_detect.py    # TTL-based OS fingerprinting
+│   ├── banner.py        # Banner grabbing
+│   ├── utils.py          # Service name mappings
+│   └── logger.py         # Logging setup
+├── tests/
+│   └── test_scanner.py
+├── docs/
+│   ├── demo.gif
+│   └── architecture.svg
+├── results/             # JSON scan output (auto-created)
+├── requirements.txt
+└── README.md
+```
+
+<br>
+
+## ⚠️ Disclaimer
+
+This tool is intended for **educational and authorized testing purposes only**.
 Do not use it on networks or systems without proper permission.
