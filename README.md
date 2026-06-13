@@ -5,6 +5,12 @@ A multi-threaded network reconnaissance tool built using Python that performs **
 
 <br>
 
+## 🎬 Demo
+
+![Demo](docs/demo.gif)
+
+<br>
+
 ## 🚀 Features
 
 | Feature | Description |
@@ -30,23 +36,17 @@ A multi-threaded network reconnaissance tool built using Python that performs **
 
 <br>
 
-## 🎬 Demo
+## ⚙️ Installation
 
-![Demo](docs/demo.gif)
+```bash
+git clone <repo-url>
+cd Network-Reconnaissance-Tool
 
-<br>
+python3 -m venv venv
+source venv/bin/activate
 
-## 🛠️ Tech Stack
-
-- Python 3
-- Socket Programming
-- Concurrent.futures.ThreadPoolExecutor
-- Scapy (ARP scanning, ICMP/UDP probes, OS fingerprinting)
-- Requests (NVD CVE API)
-- argparse (CLI interface)
-- tqdm (progress bars)
-- pytest (unit testing)
-- logging
+pip install -r requirements.txt
+```
 
 <br>
 
@@ -178,6 +178,20 @@ sudo venv/bin/python main.py --target 192.168.1.1 --threads 200 --timestamp
 ├── requirements.txt
 └── README.md
 ```
+
+<br>
+
+## 🛠️ Tech Stack
+
+- Python 3
+- Socket Programming
+- Concurrent.futures.ThreadPoolExecutor
+- Scapy (ARP scanning, ICMP/UDP probes, OS fingerprinting)
+- Requests (NVD CVE API)
+- argparse (CLI interface)
+- tqdm (progress bars)
+- pytest (unit testing)
+- logging
 
 <br>
 
