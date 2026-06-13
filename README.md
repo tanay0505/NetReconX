@@ -40,7 +40,7 @@ A multi-threaded network reconnaissance tool built using Python that performs **
 
 ```bash
 git clone https://github.com/tanay0505/NetReconX.git
-cd Network-Reconnaissance-Tool
+cd NetReconX
 
 python3 -m venv venv
 source venv/bin/activate
