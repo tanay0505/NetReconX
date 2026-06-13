@@ -1,4 +1,4 @@
-# 🔍 Network Reconnaissance & Vulnerability Assessment Tool
+# 🔍 NetReconX
 
 
 A multi-threaded network reconnaissance tool built using Python that performs **ARP-based device discovery**, **OS fingerprinting**, **TCP & UDP port scanning** with **service detection**, **banner grabbing**, and **automated CVE correlation**.
