@@ -1,25 +1,7 @@
-# 🔍 Network Reconnaissance Tool
+# 🔍 Network Reconnaissance & Vulnerability Assessment Tool
+
 
 A multi-threaded network reconnaissance tool built using Python that performs **ARP-based device discovery**, **OS fingerprinting**, **TCP & UDP port scanning** with **service detection**, **banner grabbing**, and **automated CVE correlation**.
-
-<br>
-
-## 🎬 Demo
-
-![Demo](docs/demo.gif)
-
-<br>
-
-## 🧠 How It Works
-
-![Architecture](docs/architecture.svg)
-
-1. **Network Discovery (ARP)** — sends ARP requests to identify active devices, collects IP/MAC addresses
-2. **OS Fingerprinting (TTL)** — sends ICMP ping, analyzes TTL to guess the OS with a confidence score
-3. **TCP Port Scan** — threaded connect scan across a configurable port range
-4. **UDP Port Scan** — protocol-specific probes (DNS, NTP, SNMP, NetBIOS) for accurate results
-5. **Service Detection & Banner Grab** — maps ports to services, extracts banners
-6. **CVE Lookup** — parses service/version from banners and queries the NVD API for known vulnerabilities, then exports everything to JSON
 
 <br>
 
@@ -39,6 +21,25 @@ A multi-threaded network reconnaissance tool built using Python that performs **
 | 📄 JSON export | Structured output with targets, OS guesses, open ports, and CVEs |
 | 🔗 Flexible targeting | Single target or full network range |
 | ✅ Unit tested | 17 tests covering core logic, no root required |
+
+<br>
+
+## 🎬 Demo
+
+![Demo](docs/demo.gif)
+
+<br>
+
+## 🧠 How It Works
+
+![Architecture](docs/architecture.svg)
+
+1. **Network Discovery (ARP)** — sends ARP requests to identify active devices, collects IP/MAC addresses
+2. **OS Fingerprinting (TTL)** — sends ICMP ping, analyzes TTL to guess the OS with a confidence score
+3. **TCP Port Scan** — threaded connect scan across a configurable port range
+4. **UDP Port Scan** — protocol-specific probes (DNS, NTP, SNMP, NetBIOS) for accurate results
+5. **Service Detection & Banner Grab** — maps ports to services, extracts banners
+6. **CVE Lookup** — parses service/version from banners and queries the NVD API for known vulnerabilities, then exports everything to JSON
 
 <br>
 
@@ -111,10 +112,6 @@ sudo venv/bin/python main.py --target 192.168.1.1 --threads 200 --timestamp
 | `--no-os-detect` | Skip OS fingerprinting | off |
 | `--timestamp` | Add timestamp to output filename | off |
 
-> **Note:** Root/sudo is required because the tool uses raw sockets (Scapy) for ARP scanning, OS fingerprinting, and UDP probes.
->
-> **Note:** CVE lookups query the public NVD API, which is rate-limited to ~5 requests / 30 seconds. The tool deduplicates by service/version and respects this limit automatically.
-
 <br>
 
 ## 📄 Sample Output
@@ -124,7 +121,7 @@ sudo venv/bin/python main.py --target 192.168.1.1 --threads 200 --timestamp
     "targets": [
         {
             "ip": "192.168.1.1",
-            "mac": "10:10:81:e4:23:42",
+            "mac": "AA:BB:CC:DD:EE:FF",
             "os_guess": "Linux / Android",
             "ttl": 64,
             "os_confidence": "high"
@@ -133,7 +130,7 @@ sudo venv/bin/python main.py --target 192.168.1.1 --threads 200 --timestamp
     "open_ports": [
         {
             "target": "192.168.1.1",
-            "mac": "10:10:81:e4:23:42",
+            "mac": "AA:BB:CC:DD:EE:FF",
             "port": 22,
             "protocol": "tcp",
             "status": "open",
@@ -164,23 +161,6 @@ sudo venv/bin/python main.py --target 192.168.1.1 --threads 200 --timestamp
 
 <br>
 
-## 📁 Output Files
-
-- `results/<target>.json` → Scan results (targets, open ports, and CVEs if `--cve` is used)
-- `scanner.log` → Logging information
-
-<br>
-
-## ✅ Running Tests
-
-The core logic (service mapping, OS detection, port scanning) is unit-tested with mocked network calls — **no root or live network required**:
-
-```bash
-venv/bin/pip install pytest
-venv/bin/python -m pytest tests/ -v
-```
-
-<br>
 
 ## 📦 Project Structure
 
@@ -188,11 +168,11 @@ venv/bin/python -m pytest tests/ -v
 .
 ├── main.py
 ├── scanner/
-│   ├── core.py        # TCP connect scanning
-│   ├── udp.py          # UDP scanning with protocol probes
-│   ├── network.py      # ARP-based network discovery
-│   ├── os_detect.py    # TTL-based OS fingerprinting
-│   ├── banner.py        # Banner grabbing
+│   ├── core.py           # TCP connect scanning
+│   ├── udp.py            # UDP scanning with protocol probes
+│   ├── network.py        # ARP-based network discovery
+│   ├── os_detect.py      # TTL-based OS fingerprinting
+│   ├── banner.py         # Banner grabbing
 │   ├── cve.py            # Banner parsing + NVD CVE lookup
 │   ├── utils.py          # Service name mappings
 │   └── logger.py         # Logging setup
@@ -201,7 +181,7 @@ venv/bin/python -m pytest tests/ -v
 ├── docs/
 │   ├── demo.gif
 │   └── architecture.svg
-├── results/             # JSON scan output (auto-created)
+├── results/              # JSON scan output (auto-created)
 ├── requirements.txt
 └── README.md
 ```
