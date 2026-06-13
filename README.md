@@ -24,15 +24,15 @@ A multi-threaded network reconnaissance tool built using Python that performs **
 
 <br>
 
-## 🎬 Demo
-
-![Demo](docs/demo.gif)
-
-<br>
-
 ## 🧠 How It Works
 
 ![Architecture](docs/architecture.svg)
+
+<br>
+
+## 🎬 Demo
+
+![Demo](docs/demo.gif)
 
 <br>
 
