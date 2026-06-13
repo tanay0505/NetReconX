@@ -34,20 +34,13 @@ A multi-threaded network reconnaissance tool built using Python that performs **
 
 ![Architecture](docs/architecture.svg)
 
-1. **Network Discovery (ARP)** — sends ARP requests to identify active devices, collects IP/MAC addresses
-2. **OS Fingerprinting (TTL)** — sends ICMP ping, analyzes TTL to guess the OS with a confidence score
-3. **TCP Port Scan** — threaded connect scan across a configurable port range
-4. **UDP Port Scan** — protocol-specific probes (DNS, NTP, SNMP, NetBIOS) for accurate results
-5. **Service Detection & Banner Grab** — maps ports to services, extracts banners
-6. **CVE Lookup** — parses service/version from banners and queries the NVD API for known vulnerabilities, then exports everything to JSON
-
 <br>
 
 ## 🛠️ Tech Stack
 
 - Python 3
 - Socket Programming
-- `concurrent.futures.ThreadPoolExecutor`
+- Concurrent.futures.ThreadPoolExecutor
 - Scapy (ARP scanning, ICMP/UDP probes, OS fingerprinting)
 - Requests (NVD CVE API)
 - argparse (CLI interface)
