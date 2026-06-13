@@ -39,7 +39,7 @@ A multi-threaded network reconnaissance tool built using Python that performs **
 ## ⚙️ Installation
 
 ```bash
-git clone https://github.com/tanay0505/Network-Reconnaissance-Tool.git
+git clone https://github.com/tanay0505/NetReconX.git
 cd Network-Reconnaissance-Tool
 
 python3 -m venv venv
