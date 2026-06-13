@@ -1,6 +1,6 @@
 # 🔍 Network Reconnaissance Tool
 
-A multi-threaded network reconnaissance tool built using Python that performs **ARP-based device discovery**, **OS fingerprinting**, **TCP & UDP port scanning** with **service detection** and **banner grabbing**.
+A multi-threaded network reconnaissance tool built using Python that performs **ARP-based device discovery**, **OS fingerprinting**, **TCP & UDP port scanning** with **service detection**, **banner grabbing**, and **automated CVE correlation**.
 
 <br>
 
@@ -18,7 +18,8 @@ A multi-threaded network reconnaissance tool built using Python that performs **
 2. **OS Fingerprinting (TTL)** — sends ICMP ping, analyzes TTL to guess the OS with a confidence score
 3. **TCP Port Scan** — threaded connect scan across a configurable port range
 4. **UDP Port Scan** — protocol-specific probes (DNS, NTP, SNMP, NetBIOS) for accurate results
-5. **Service Detection & Banner Grab** — maps ports to services, extracts banners, exports to JSON
+5. **Service Detection & Banner Grab** — maps ports to services, extracts banners
+6. **CVE Lookup** — parses service/version from banners and queries the NVD API for known vulnerabilities, then exports everything to JSON
 
 <br>
 
@@ -32,9 +33,10 @@ A multi-threaded network reconnaissance tool built using Python that performs **
 | 📶 UDP scanning | Protocol-specific probes for DNS, NTP, SNMP, NetBIOS + generic fallback |
 | 🏷️ Service detection | Maps 25+ TCP/UDP ports to service names |
 | 📡 Banner grabbing | Extracts service banners for deeper inspection |
-| 📊 Progress tracking | Real-time tqdm progress bars for TCP and UDP scans |
+| 🛡️ CVE correlation | Parses product/version from banners and queries the NVD API for known CVEs (with severity & CVSS score) |
+| 📊 Progress tracking | Real-time tqdm progress bars for TCP, UDP, and CVE lookups |
 | 📝 Logging | Full scan activity logged to `scanner.log` |
-| 📄 JSON export | Structured output with targets, OS guesses, and open ports |
+| 📄 JSON export | Structured output with targets, OS guesses, open ports, and CVEs |
 | 🔗 Flexible targeting | Single target or full network range |
 | ✅ Unit tested | 17 tests covering core logic, no root required |
 
@@ -46,6 +48,7 @@ A multi-threaded network reconnaissance tool built using Python that performs **
 - Socket Programming
 - `concurrent.futures.ThreadPoolExecutor`
 - Scapy (ARP scanning, ICMP/UDP probes, OS fingerprinting)
+- Requests (NVD CVE API)
 - argparse (CLI interface)
 - tqdm (progress bars)
 - pytest (unit testing)
@@ -75,6 +78,11 @@ sudo venv/bin/python main.py --target 192.168.1.1 --udp
 sudo venv/bin/python main.py --target 192.168.1.1 --udp --udp-ports 53,123,161,500 --udp-timeout 1.5
 ```
 
+### Look up CVEs for detected services
+```bash
+sudo venv/bin/python main.py --target scanme.nmap.org --cve
+```
+
 ### Skip OS fingerprinting (faster scans)
 ```bash
 sudo venv/bin/python main.py --target 192.168.1.1 --no-os-detect
@@ -98,10 +106,14 @@ sudo venv/bin/python main.py --target 192.168.1.1 --threads 200 --timestamp
 | `--udp` | Enable UDP scanning | off |
 | `--udp-ports` | Comma-separated UDP ports | top 16 common ports |
 | `--udp-timeout` | UDP probe timeout (seconds) | `2.0` |
+| `--cve` | Look up known CVEs for detected service banners (NVD API) | off |
+| `--cve-results` | Max CVEs to fetch per service/version | `5` |
 | `--no-os-detect` | Skip OS fingerprinting | off |
 | `--timestamp` | Add timestamp to output filename | off |
 
 > **Note:** Root/sudo is required because the tool uses raw sockets (Scapy) for ARP scanning, OS fingerprinting, and UDP probes.
+>
+> **Note:** CVE lookups query the public NVD API, which is rate-limited to ~5 requests / 30 seconds. The tool deduplicates by service/version and respects this limit automatically.
 
 <br>
 
@@ -122,11 +134,21 @@ sudo venv/bin/python main.py --target 192.168.1.1 --threads 200 --timestamp
         {
             "target": "192.168.1.1",
             "mac": "10:10:81:e4:23:42",
-            "port": 80,
+            "port": 22,
             "protocol": "tcp",
             "status": "open",
-            "service": "HTTP",
-            "banner": "HTTP/1.1 200 OK..."
+            "service": "SSH",
+            "banner": "SSH-2.0-OpenSSH_6.6.1p1",
+            "detected_product": "openssh",
+            "detected_version": "6.6.1",
+            "cves": [
+                {
+                    "id": "CVE-2014-2653",
+                    "severity": "MEDIUM",
+                    "score": 6.5,
+                    "description": "ssh client did not properly verify host keys..."
+                }
+            ]
         },
         {
             "target": "192.168.1.1",
@@ -144,7 +166,7 @@ sudo venv/bin/python main.py --target 192.168.1.1 --threads 200 --timestamp
 
 ## 📁 Output Files
 
-- `results/<target>.json` → Scan results (targets + open ports)
+- `results/<target>.json` → Scan results (targets, open ports, and CVEs if `--cve` is used)
 - `scanner.log` → Logging information
 
 <br>
@@ -171,6 +193,7 @@ venv/bin/python -m pytest tests/ -v
 │   ├── network.py      # ARP-based network discovery
 │   ├── os_detect.py    # TTL-based OS fingerprinting
 │   ├── banner.py        # Banner grabbing
+│   ├── cve.py            # Banner parsing + NVD CVE lookup
 │   ├── utils.py          # Service name mappings
 │   └── logger.py         # Logging setup
 ├── tests/

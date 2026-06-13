@@ -13,6 +13,7 @@ from scanner.logger import setup_logger
 from scanner.network import scan_network
 from scanner.os_detect import fingerprint_os
 from scanner.udp import scan_udp_port, TOP_UDP_PORTS
+from scanner.cve import extract_product_version, lookup_cves
 
 results = []
 lock = Lock()
@@ -47,6 +48,54 @@ def worker(target_ip, mac, port):
             progress.update(1)
 
 
+def run_cve_lookups(scan_results, max_results=5):
+    """
+    Post-scan pass: extract product/version from each TCP result's banner,
+    deduplicate, and query the NVD API for known CVEs.
+    Mutates scan_results in place, adding a 'cves' key where applicable.
+    """
+    # 1. Build a deduplicated list of (product, version) to look up
+    lookups = {}  # (product, version) -> list of result dicts to update
+
+    for r in scan_results:
+        if r.get("protocol") != "tcp":
+            continue
+        pv = extract_product_version(r.get("banner", ""))
+        if not pv:
+            continue
+        key = (pv[0].lower(), (pv[1] or "").lower())
+        lookups.setdefault(key, []).append(r)
+
+    if not lookups:
+        print("[*] No identifiable service/version strings found for CVE lookup.\n")
+        return
+
+    print(f"\n[*] Running CVE lookups for {len(lookups)} unique service/version combo(s)...")
+    print("    (NVD public API is rate-limited to ~5 requests / 30s)\n")
+
+    cve_progress = tqdm(total=len(lookups), desc="CVE lookup", ncols=80)
+
+    for (product, version), target_results in lookups.items():
+        cves = lookup_cves(product, version if version else None, max_results=max_results)
+
+        if cves:
+            tqdm.write(f"[!] {product} {version or ''} → {len(cves)} CVE(s) found")
+            for c in cves:
+                tqdm.write(f"      {c['id']}  [{c['severity']}]  score={c['score']}")
+        else:
+            tqdm.write(f"[ ] {product} {version or ''} → no known CVEs found")
+
+        for r in target_results:
+            r["detected_product"] = product
+            r["detected_version"] = version or "N/A"
+            r["cves"] = cves
+
+        cve_progress.update(1)
+
+    cve_progress.close()
+    print()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Network Reconnaissance Tool")
     parser.add_argument("--target", help="Target IP or domain")
@@ -59,6 +108,8 @@ def main():
     parser.add_argument("--udp", action="store_true", help="Also run UDP scan on top common ports")
     parser.add_argument("--udp-ports", help="Custom UDP ports to scan (e.g. 53,161,123)", default=None)
     parser.add_argument("--udp-timeout", type=float, default=2.0, help="UDP probe timeout in seconds (default: 2.0)")
+    parser.add_argument("--cve", action="store_true", help="Look up known CVEs for detected service banners (uses NVD API)")
+    parser.add_argument("--cve-results", type=int, default=5, help="Max CVEs to fetch per service/version (default: 5)")
     args = parser.parse_args()
 
     setup_logger()
@@ -124,8 +175,6 @@ def main():
         progress.close()
 
         # --- UDP Scan ---
-        # Fix #1: threaded UDP scan
-        # Fix #3: tqdm progress bar for UDP
         if args.udp:
             print(f"\n[*] Running UDP scan on {ip} ({len(udp_ports)} ports)...\n")
 
@@ -151,6 +200,10 @@ def main():
                         udp_progress.update(1)
 
             udp_progress.close()
+
+    # --- CVE Lookup (post-scan pass) ---
+    if args.cve:
+        run_cve_lookups(results, max_results=args.cve_results)
 
     # filename handling
     if args.network:
